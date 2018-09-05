@@ -1,0 +1,897 @@
+===== Instalação do minikube =====
+
+Linux: 
+ 
+curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+ 
+MacOS: 
+ 
+curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/darwin/amd64/kubectl
+ 
+Windows: 
+ 
+curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.8.0/bin/windows/amd64/kubectl.exe
+ 
+chmod +x ./kubectl
+sudo mv ./kubectl /usr/local/bin/kubectl
+kubectl version
+ 
+Linux: 
+ 
+curl -Lo minikube https://storage.googleapis.com/minikube/releases/v0.23.0/minikube-linux-amd64 && chmod +x minikube && sudo mv minikube /usr/local/bin/
+ 
+macOS: 
+ 
+curl -Lo minikube https://storage.googleapis.com/minikube/releases/v0.23.0/minikube-darwin-amd64 && chmod +x 
+minikube && sudo mv minikube /usr/local/bin/
+minikube start
+kubectl run hello-minikube --image=gcr.io/google_containers/echoserver:1.4 --port=8080
+kubectl expose deployment hello-minikube  --type=NodePort
+kubectl get pod
+curl $(minikube service hello-minikube --url)
+kubectl delete deployment hello-minikube
+minikube stop
+
+====== construindo a primeira aplicação kubernetes ========
+
+kubectl apply -f ./deployment.yaml
+kubectl expose deployment tomcat-deployment --type=NodePort
+minikube service tomcat-deployment --url
+curl <URL>
+
+====== comandos básicos =====================================
+
+kubectl get pods
+kubectl get pods [pod name]
+ 
+kubectl expose <type name> <identifier/name> [—port=external port] [—target-port=container-port [—type=service-type]
+kubectl expose deployment tomcat-deployment --type=NodePort
+ 
+kubectl port-forward <pod name> [LOCAL_PORT:]REMOTE_PORT]
+ 
+kubectl attach <pod name> -c <container>
+ 
+kubectl exec  [-it] <pod name> [-c CONTAINER] — COMMAND [args…]
+kubectl exec -it <pod name> bash
+ 
+kubectl label [—overwrite] <type> KEY_1=VAL_1 ….
+kubectl label pods <pod name> healthy=fasle
+ 
+kubectl run <name> —image=image
+kubectl run hazelcast --image=hazelcast/hazelcast --port=5701
+# the hazelcast docker image has been moved to hazelcast/hazelcast (https://hub.docker.com/r/hazelcast/hazelcast
+ 
+kubectl describe pod
+
+kubectl get deployments
+
+kubectl describe deployments
+
+
+=================================================================
+
+o "master" é composto por
+
+API server
+Scheduler
+Controller manager
+
+Um nó é composto por:
+
+Kubelet
+Kube-proxy
+Pod
+Docker
+
+
+=================================================================
+
+Stateful vs stateless
+
+A forma que o estado da aplicação está interfere no escalonamento.
+
+ -- Kubernetes permite a definição de réplicas quando for feito o deploy de uma aplicação, temos as seguintes opções:
+
+*Apontando "replica" no deploy (recomendado)
+*Definindo uma replicaset
+*Bare Pods
+*job
+*DaemonSet
+
+Scalling:
+
+Via arquivo yaml:
+
+deployment.yaml - 
+https://github.com/LevelUpEducation/kubernetes-demo/tree/master/Basic%20and%20Core%20Concepts/Scaling%20%26%20Replication
+
+por Comando:
+
+kubectl scale --replicas=4 deployment/tomcat-deployment >> cria 4 instancias do tomcat
+
+kubectl expose deployment tomcat-deployment --type=LoadBalancer --port=8080 --target-port=8080 --name tomcat-load-balancer >> cria um load balancer, linkando as 4 replicas
+ 
+kubectl describe services tomcat-load-balancer >> exibe o ip para o load balance 
+
+===================================================
+
+O que são deploys!?
+
+*Deploys são objetos de alto nivel no kubernetes, eles definem o estado desejado da aplicação
+
+*Eles consistem em pods
+
+*Opcionalmente, eles também podem incluir ReplicaSets (que são automáticamente gerenciados pelo deploy baseado nesta configuração da réplica)
+
+
+===================================================
+
+Com objetos de deploy você pode:
+
+Criar um novo deploy
+
+Atualizar um deploy existente
+
+Aplicar updates em pods rodando no seu cluster
+
+dar "RollBack" para a versão anterior
+
+Pausar e Resumir um deploy
+
+===================================================
+
+Comandos de deploy:
+
+kubectl get deployments >> lista os deploys
+kubectl rollout status (deployment <nome do deploy>) >> exibe a versão do deploy
+kubectl set image >> altera a imagem do deploy
+kubectl rollout history (deployment/<nome do deploy>) >> Vê o histórico de versão, incluindo versões anteriores
+
+===================================================
+
+Labels e seletores:
+
+Método de manter as coisas organizadas, e de ajudar você (um humano) a identificar os recursos que você deverá atuar
+
+São pares de chave/valor que você pode inserir em objetos, como por exemplo os pods
+
+	*Eles são para os usuários descreverem informações uteis e 		relevantes sobre um projeto.
+
+	*Eles não alteram a semantica do nucleo do sistema em si.
+
+Seletores são meios de expressar como selecionar objetos baseando-se nos seus respectivos labels
+	*Seletores são de uma linguagem que define quais labels checar e 		qual é o que combina.
+	*Você pode especificar se um label equivale a um critério dado ou 		se ele cabe dentro de uma infinidade de opções
+		*equality-based
+		*Set-based
+
+===================================================
+
+kubectl get nodes
+
+kubectl label node minikube storageType=ssd
+
+arquivo yaml com a alteração:
+
+https://github.com/LevelUpEducation/kubernetes-demo/blob/master/Basic%20and%20Core%20Concepts/Labels%20%26%20Selectors/deployment.yaml
+
+tendo este arquivo, rodar:
+
+kubectl apply -f ./deployment.yaml
+
+===================================================
+
+Health checking (or probes):
+
+*Kubernetes tem dois tipos de health checks para checar duas coisas:
+	
+	Readline Probes: Para determinar quando o pod está "ready"
+
+	Liveness probes: Para determinar quando um pod está saudável 		(healthy) ou não saudável (unhealthy) antes de estar pronto
+
+Independente de ser uma das duas formas, a probe pode utilizar uma variedade de métodos para exibir o estado desejado:
+
+	*HTTP ou TCP request bem sucedido para o POD
+	*Execução de comando bem sucedido para o POD
+
+Probes são definidos no container no momento do deploy ou na especificação do Pod.
+
+Considerar o arquivo yaml:
+
+https://github.com/LevelUpEducation/kubernetes-demo/blob/master/Basic%20and%20Core%20Concepts/Health%20Checks/deployment.yaml
+
+
+
+===================================================
+
+Kubernetes web ui
+
+*Chamada de Dashboard UI
+
+*Roda no Kubernetes "master"
+
+*Acessível diretamente se você tem conectividade de rede direta com o cluster/master
+
+*kubectl pode criar um proxy/tunnel para você em situações que você não tiver o acesso:
+
+kubectl proxy
+
+Kubernetes:
+
+*Oferece uma variadeade de views sobre tudo no seu cluster kubernetes
+
+*Permite update, deleção e criação de qualquer coisa no cluster.
+
+*Acessa a mesma API assim como a kubectl
+
+
+Em alguns cluster Kubernetes a dashboard UI vem pré-instalada, em alguns não vem (alguns provedores de serviços de kubernetes na nuvem incluem ele)
+
+Instalando o dashboard:
+
+kubectl create -f https://raw.githubusercontent.com/kubernetes/dashboard/master/src/deploy/recommended/kubernetes-dashboard.yaml
+
+acessando o dashboard (o jeito mais fool-prof) :
+
+kubectl proxy
+
+
+troubleshooting (caso ficar aparecendo somente os caminhos das páginas):
+
+https://github.com/kubernetes/minikube/issues/3041
+
+minikube dashboard
+
+http://localhost:8001/api/v1/namespaces/kube-system/services/kubernetes-dashboard/proxy
+
+===================================================
+
+Até o momento você deverá saber:
+
+Como definir um deploy no kubernetes
+
+Como efetuar o deploy utilizando este mesmo deploy
+
+Como escalonar este deploy no kubernetes
+
+
+Exercicio:
+
+Efetuar deploy e escalonar um MongoDB
+
+Se funcionou:
+
+A versão atual do MongoDB deverá estar rodando no seu cluster de kubernetes com 4 réplicas
+
+Algumas dicas:
+
+MongoDB escuta a porta 27017
+Existem imagens docker do MongoDB no docker hub.
+
+resolução:
+
+Utilizando kubectl para rodar uma imagem default do mongo:
+	kubectl run mongo-exercise-1 --image=mongo --port=2717
+Utilizando o kubectl para escalonar a imagem:	
+	kubectl scale --replicas=4 deployment/mongo-exercise-1
+
+Outra possível solução:
+
+Escrever um arquivo deployment.yaml e utilizar o kubectl apply, usando o kubectl expose para expor a porta de serviço
+
+Escrevendo um arquivo deployment.yaml e um arquivo service.yaml e utilizar o kubectl apply em ambos
+
+Utilizando um gerenciador de pacotes do kubernetes como o helm para efetuar o trabalho.
+
+===================================================
+
+O serviço de DNS do kubernetes
+
+*O Kubernetes tem um serviço de DNS já incluso, que é rodado (e configurado) automaticamente
+
+*Kubernetes configura kubelets que dizem para os containers, de maneira individual para utilizar os serviços de DNS, permitindo a resolução de nomes
+
+
+Dns como descobrimento de serviço no kubernetes
+
+*cada serviço no cluster do kubernetes tem um nome DNS
+
+*O Kubernetes tem uma nomeclatura consistente e específica para especificar qual o DNS:
+
+	<nome do serviço>.<spacename>.svc.cluster.local
+
+Mas, você pode utilizar este padrão conhecido para desenvolver serviços pouco utilizados ou pelo menos configurar "padrões sãos"
+
+Um destes padrões poderá ser utilizar variáveis de ambiente para setar o nome de DNS de outros serviços que seu app poderá utilizar
+
+ou, você pode filtrar pelos serviços setados nos nomes DNS
+
+ou, combinar um ou dois acima e filtrar serviços em dns conhecidos e sobrescrecer as variáveis ("convenção sobre configuração")
+
+kube-dns -> serviço de DNS do kubernetes
+
+===================================================
+
+Namespaces
+
+*Separam o cluster em pequenos clusters lógicos 
+	- Por padrão, tudo o que é feito está no namespace "default"
+*Os nomes de DNS do kubernetes irá incluir a namespace que está atrelada ao nome de DNS
+
+*Namespaces são úteis principalmente para clusters grandes com muitos usuários e vários times e projetos, utilizando o namespace default é tranquilo se esta separação lógica não for necessária.
+
+===================================================
+
+Exemplo prático:
+
+*Deploy do wordpress com mysql em um cluster kubernetes
+
+*Wordpress e Mysql serão ambos deploys separados
+	-Contudo, o wordpress precisa do mysql para funcionar
+	-E principalmente, ele precisa conhecer um hostname TCP/IP para se conectar ao mysql
+
+*Vamos utilizar DNS para criar um deploy de Wordpress aonde ele acessará o servidor de mysql como "wordpress-mysql" na mesma namespace
+
+*Nós iremos permitir este valor ser sobrescrito pela variável de ambiente como uma "melhor prática"
+
+*isto segue a melhor prática "convenção sobre a configuração"
+
+1) Deploy do mysql com o nome "wordpress-mysql"
+
+2) Uma vez feito o deploy, ele irá rodar o mysql 5.6 na porta 3306 no hostname wordpress-mysql 
+
+3) Deploy do WordPress com o nome "wordpress"
+
+4) O mysql será configurado para estar disponível no "wordpress-mysql"
+
+Para praticar este exemplo, considerar o repositório:
+
+https://github.com/LevelUpEducation/kubernetes-demo/tree/master/Kubernetes%20in%20Production/Setting%20up%20High%20Availability
+
+#deploy do mysql
+kubectl create -f mysql-deployment.yaml
+
+kubectl get pods #mostra se o deploy foi feito com sucesso
+
+#deploy do kubernetes
+kubectl create -f wordpress-deployment.yaml
+kubectl get services wordpress #mostra informações do load balancer criado
+minikube services wordpress --url #Mostra a URL e a porta criada para teste
+
+====================================================
+
+Volumes - a persistencia do kubernetes
+
+como discos, mas com um pouco mais
+
+*Volumes podem ser considerados apenas um diretório, com alguns dados, aonde um container em um pod pode acessar
+
+*Kubernetes suporta multiplos tipo de volumes que podem cuidar dos dados guardados, persistidos e disponíveis
+	- Suporta uma variedade de produtos de provedores de cloud
+	- Suporta hardware San-type, sistemas de arquivos, etc.
+	- Suporta volumes locais (para teste/Minikube somente! em produção não!!!)
+
+*certos tipos de volumes podem também prover compartilhamento de arquivos entre os Pods sendo montados em vários pods, simultaneamente.
+
+====================================================
+
+Tipos de volumes
+
+Uma lista incompleta:
+
+*Provedores de cloud
+	- Azure Disk & Azure File
+	- AWS EBS
+	- Google Compute Engine Persistent Disk
+
+*San/Sistema de arquivos/Hardware
+	-CepgFS
+	-Fibre Channel
+	-GlusterFS
+	-NFS
+	-ISCSI
+	-Local (para desenvolvimento/minikube somente - não suportado em produção)
+	
+
+====================================================
+
+Usando volumes
+
+*Pods podem especificar quais volumes eles precisam e aonde monta-los
+	-Usando o campo spec.volumes (quais volumes eles precisam)
+	-Usando o campo spec.containers.volumeMounts (aonde monta-los)
+
+*Procesando o container , ele enxerga o filesystem 
+
+*Utilizando volumes, podemos separar porções "stateless" de nossa aplicação (o código) de dados "stateful"
+	- A infraestrutura pode ser escalada, gerenciada, e pode viver 		separadamente dos dados que passam por ela
+	-também terá portabilidade, backup, recuperação e outras ações de 		administração em sistemas bem arquitetados
+
+*PersistentVolumes é designado para prover a funcionalidade de um disco persistente
+
+*Estabelecendo um PersistentVolumeClain (isto é a requisição para o storage de um usuário/pod)
+
+*Examinando PersistentVolumes disponíveis e rodando do persistentVolumeClaims por Pods, kubernetes direciona volumes disponível para os Pods através das opções especificadas pelo parametro PersistentVolumeClaims para coincidir com o PersistentVolumes (por nome, tamanho de storage, tipo do storage, etc, solicitado pelo claims)
+
+====================================================
+
+Criando um volume
+
+*Volumes persistentes são definidos utilizando a definição "PersistentVolume" que especifica o seu tipo, tamanho e como eles podem ser acessados
+
+*Os tipos e forma de acesso são altamente dependentes dos dados subjacentes
+	- Disco local
+	- Montagem de rede
+	- Serviço de storage em nuvem
+	- Diretório no host (para teste!! não para produção!)
+
+Considerar o caminho: 
+https://github.com/LevelUpEducation/kubernetes-demo/tree/master/Advanced%20Kubernetes%20Usage/Volumes
+
+
+
+/
+====================================================
+
+Solicitando um volume
+
+*Pods utiliza o parametro PersistentVolumeClaims para solicitar espaço físico definido pelo parametro PersistentVolumes
+
+*Kubernetes usa a solicitação (claim) para verificar se há um PersistentVolume que satisfaça a requisição (claim)
+	-Se a pesquisa for bem sucedida, ele direciona a solicitação para 	o volume
+	-Se não, resulta em erro
+
+considerar o arquivo task-pv-claim.yaml:
+
+https://github.com/aledv/kubernetes-ftp/blob/master/task-pv-claim.yaml
+
+e o:
+
+https://github.com/LevelUpEducation/kubernetes-demo/tree/master/Advanced%20Kubernetes%20Usage/Volumes
+
+
+kubectl create -f local-volumes.yaml # Cria os volumes
+kubectl get persistentvolumes # lista os volumes, caso sejam criados
+kubectl apply -f mysql-deployment.yaml # aplica as alterações no deploy
+kubectl apply -f wordpress-deployment.yaml # aplica as alterações no deploy
+
+#reiniciando o cluster
+minikube stop #para o mininkube
+minikube start #inicializa o minkube
+
+minikube service wordpress --url #mostra a URL do serviço criado
+
+depois destes passos, criar um post no wordpress, ele deverá persistir quando deletarmos o deploy do wordpress!
+
+kubectl delete deployment wordpress
+kubectl get deployments
+kubectl create -f wordpress-deployment.yaml # apresentará alguns erros! porque algumas coisas ainda existem e não serão criadas! (serviço wordpress e o persistentvolumeclaims)
+
+minikube service wordpress --url
+
+====================================================
+
+
+declaração "secret-backed"
+
+Para começarmos é necessário deletar os deploys
+
+kubectl delete -f ./mysql-deployment.yaml
+kubectl delete -f ./wordpress-deployment.yaml
+minikube stop
+minikube start
+
+
+Secrets:
+
+*secrets contém pequenas porções de dados
+
+*secrets podem ser enviados a um pod na forma de:
+	-Um arquivo colocado em um volume em execução contendo dados 		sigilosos (útil para certificados)
+	-Em uma variável de ambiente referenciada pelo Pod e inserida 
+	em execução dentro do ambiente pelo kubelet rodando no Pod - como 	uma outra variável qualquer
+
+Como eles são guardados:
+
+*Kubernetes provê separação dos secrests, mas não provê encriptação forte
+
+*Secrets são geralmente codificados em strings base64 e guardadas separadamente da configuração e injetadas em tempo de execução
+
+*Você pode encoda-las manualmente ou usando ferramentas do kubernetes para fazer isso para você
+
+
+Como eles são estruturados
+
+*Secrets são pares de chave:valor, tanto a chave quanto o valor são strings arbitrárias
+
+Sobre base64
+
+*Codificação base64 é um método que guarda dados binários em um "cofre" de string por tradução, utilizando uma representação de "radix-64".
+	-Ajuda a armazenar pequenas porções de texto ou dados não textuais que podem ser de qualquer maneira difíceis de lidar em sistemas que 		utilizam estes dados
+	-Pequenos arquivos, imagens, ou até mesmo texto pode ser codificado em base 64, os resultados geralmente são seguros.
+
+*A string "Kubernetes" codificado em base64 é: "S3ViZXJuZXRlcw=="
+
+
+Criando uma secret
+
+*Kubernetes ajuda nesta tarefa!
+
+*Criando uma secret utilizando kubectl
+	-De um arquivo(cria uma secret de nome genérico db-user-pass com o username á partir do username.txt e senha a partir do password.txt
+
+kubectl create secret generic db-user-pass --from-file=./username.txt --from-file=./password.txt
+kubectl create secret generic mysql-pass --from-literal=password=PASSWORDS_IN_PLAIN_TEXT_ARE_BAD_WE_WILL_SHOW_SOMETHING_MORE_SECURE_LATER
+kubectl get secret
+ 
+kubectl apply -f mysql-deployment.yaml
+kubectl apply -f wordpress-deployment.yaml
+minikube service wordpress --url
+
+Considerar: 
+
+https://github.com/LevelUpEducation/kubernetes-demo/tree/master/Advanced%20Kubernetes%20Usage/Secrets			
+
+====================================================
+
+Trouble Shooting
+Error 1
+
+If the wordpress pods keeps restarting until it gets a CrashLoopBackOff error.  The logs of the wordpress have the below error. 
+
+MySQL Connection Error: (1045) Access denied for user 'root' (using password:YES)
+Warning: mysqli::mysqli(): (HY000/1045): Access denied for user 'root' (using password:YES) in - on line 22
+It means  WORDPRESS_DB_PASSWORD is not set up for wordpress pod correctly. We have noticed this weird issue, that the old secret we set in the previous lecture doesn't get updated in this lecture.
+
+Solution:
+
+solution is when you run the below kubectl create secret command, you pass the old secret used in the previous lecture, this will keep a lot of permission issues from occurring, so that you can follow along.  (credits given to @Brian)
+
+kubectl create secret generic mysql-pass --from-literal=password=PASSWORDS_IN_PLAIN_TEXT_ARE_BAD_WE_WILL_SHOW_SOMETHING_MORE_SECURE_LATER
+
+
+
+Error 2
+
+The Deployment "wordpress-mysql" is invalid: spec.template.spec.containers[0].env[0].valueFrom: Invalid value: "": may not be specified when `value` is not empty
+In some versions of k8s tools when moving from a variable-based declaration to a secret-backed declaration the deployments must be deleted. 
+
+Solution:
+
+run the below commands to  delete all the resources, restart minikube, then retry the commands.
+
+kubectl delete -f ./mysql-deployment.yaml
+kubectl delete -f ./wordpress-deployment.yaml
+minikube stop
+minikube start
+kubectl apply -f ./mysql-deployment.yaml
+kubectl apply -f ./wordpress-deployment.yaml
+
+====================================================
+
+
+Monitoramento de uso de recursos
+
+*Exploraremos a pilha nativa do K8 com várias adições open source:
+
+	-Heapster  >>>> Solução de monitoramento de containers do kubernetes, mantido por CNCF
+	-IngluxDB
+	-Grafana
+
+Comandos:
+
+minikube addons enable heapster
+kubectl get pods --namespace=kube-system
+minikube addons open heapster
+
+====================================================
+
+Namespaces:
+
+*Os namespaces criam vãrios clusters virtuais no mesmo cluster fisico, estes clusters virtuais são chamados de namespaces.
+
+*Namespaces provê separação, quando você precisar deles, comece a usa-los
+
+*até agora, utilizando a opção "default" é tranquilo
+
+
+*Namespaces podem ser objetos de Quota de recursos selecionados
+
+*Cada namespace deverá ter pelo menos um (mas isto não é necessário)
+
+*Este irá limitar a quantiade de uso permitido pelos objetos da namespace
+
+Você pode limitar:
+
+*Computação
+
+*Armazenamento
+
+*Memória
+
+*Quantos objetos podem existir
+
+Comandos:
+
+kubectl create namespace <namespace name>
+kubectl get namespace
+kubectl create namespace cpu-limited-tomcat
+kubectl create -f ./cpu-limits.yaml —namespace=cpu-limited-tomcat (from the GitHub repo directory for this lecture)
+kubectl apply -f ./tomcat-deployment.yaml —namespace=cpu-limited-tomcat (from the GitHub repo directory for this lecture)
+kubectl describe deployment tomcat-deployment —namespace=cpu-limited-tomcat
+
+====================================================
+
+Auto-Scaling
+
+Auto escalador horizontal de pods (HPA)
+
+*Funcionalidade do kubernetes que ajusta o número de réplicas de um Pod para alcançar a quantidade de uso de CPU especificada pelo usuário
+
+*Existem uma variedade de opções, a chave para entender isto é entender que o HPA irá criar novos pods (bem como remove-los) a partir de uma réplica para manter o uso médio de CPU entre todos os Pods para um nível específico quando você cria o HPA.
+
+*O comando kubectl autoscale oferece as funções necessárias para a criação de um HPA
+
+*Para criar um autoscaler no nosso deploy wordpress que mantenha o uso de CPU até de 50% por pod, aonde os parametros são no mínimo 1 Pode e o máximo são 10 pods:
+
+kubeclt autoscale deployment wordpress --cpu-percent=50 --min=1 --max=10
+
+
+
+
+
+Comandos:
+
+Auto-Scaling Commands
+Seção 5, aula 57
+Commands
+(In the first terminal)
+
+# since the latest minikube doesn't enable metrics-server by default
+minikube addons enable metrics-server  
+
+#Limitar artificialmente o nosso POD wordpress para nós podermos estressa-lo facilmente
+kubectl apply -f ./wordpress-deployment.yaml
+
+#Adicionando uma HPA para ativar o auto-scaling da nossa instalação do wordpress para manter a cpu até 50% (ou menos) com o mínimo de 1 Pod e o máximo de 5 pods
+kubectl autoscale deployment wordpress --cpu-percent=50 --min=1 --max=5
+
+(In the other terminal)
+#Simulando o Load utilizando uma quantidade infinita de requisições HTTP de um worker pod para o nosso cluster para o wordpress encabeçar a quantidade de CPU desejada:
+kubectl run -i --tty load-generator --image=busybox /bin/sh
+ 
+while true; do wget -q -O- http://wordpress.default.svc.cluster.local; done
+
+(In the first terminal)
+#Vamos agora chegar o status do HPA
+kubectl get hpa
+
+Trouble Shooting
+In the other terminal where the load-generator is running, if it shows below errors
+
+/ # while true ; do wget -q -O- http://wordpress.default.svc.cluster.local ; done
+wget: can't connect to remote host (10.XX.XXX.XXX): Network is unreachable
+wget: can't connect to remote host (10.XX.XXX.XXX): Network is unreachable
+wget: can't connect to remote host (10.XX.XXX.XXX): Connection timed out
+wget: can't connect to remote host (10.XX.XXX.XXX): Network is unreachable
+wget: can't connect to remote host (10.XX.XXX.XXX): Connection timed out
+Solution:
+
+replace http://wordpress.default.svc.cluster.local with the output of minikube service wordpress --url
+
+For example:
+
+while true ; do wget -q -O- http://192.168.99.100:32094 ; done
+
+Related Q&A:
+
+https://www.udemy.com/kubernetes-from-a-devops-kubernetes-guru/learn/v4/questions/4400548
+
+https://www.udemy.com/kubernetes-from-a-devops-kubernetes-guru/learn/v4/questions/4838588
+
+
+====================================================
+
+Auditoria:
+
+*Auditoria do kubernetes oferece uma listagem por ordem cronológica dos fatos de todas as atividades que afetaram o sistema.
+
+*Podem ajudar mostrando o que aconteceu, quando, por quem, no que, aonde, como isto inicializou e para aonde está indo:
+
+*O kube-apiserver executa auditoria de acordo com a politica de auditoria e envia os dados para o backend de auditoria.
+
+*A política de auditoria define quem deveria estar logado
+
+*A politica de auditoria é definida em arquivo .yaml como os outros objetos do kubernetes mas como isto é uma auditoria, kubectl não irá ajudar muito aqui hermano!
+
+	-Auditoria deverá ser definida no kube-apiserver, é uma opção que é passada para ele quando é inicializado, isto varia por cluster 
+	-Por sorte, no minikube, nós passaremos somente algumas opções (como a nossa politica de auditoria) quando inicalizarmos o mesmo.
+
+*Por pouco, tudo o que você puder criar ou fazer, será auditado no kubernetes.
+
+
+
+O backend de auditoria
+
+* Backends de auditoria exportam eventos de auditoria para o storage externo
+
+*Fora da caixa, kube-apiserver oferece 2 backends
+	-logs - que escreve os eventos no disco
+	-Webhooks - envia eventos para sistemas de API externos.
+
+Praticando!
+
+*Vamos configurar uma política de auditoria simples para registrar todas as requisições a respeito dos metadados, isto irá permitir ver o que os dados de auditoria são sem sobrecarregar tudo.
+
+*Vamos configurar o minikube para armazenar em um arquivo no nosso sistema
+
+Passos:
+
+1 - Pare o minikube (se estiver rodando)
+
+2 - Defina uma política de auditoria >>> em /etc/kubernetes/addons/audit-policy.yaml
+
+3 - Inicialize o minikube com a política de auditoria definida e com as opções apropriadas:
+
+minikube start  --extra-config=apiserver.Authorization.Mode=RBAC --extra-config=apiserver.Audit.LogOptions.Path=/var/logs/audit.log   --extra-config=apiserver.Audit.PolicyFile=/etc/kubernetes/addons/audit-policy.yaml
+
+
+entrar no minikube para testar:
+
+minikube ssh
+sudo bash
+cd /var/logs
+cat audit.log <<< os dados estarão todos aqui, em json!
+
+
+
+Comandos:
+
+Trouble Shooting:
+If you hang running the script file on 'Starting cluster components'
+
+minikube start  --extra-config=apiserver.Authorization.Mode=RBAC --extra-config=apiserver.Audit.LogOptions.Path=/var/logs/audit.log   --extra-config=apiserver.Audit.PolicyFile=/etc/kubernetes/addons/audit-policy.yaml
+results in the command hanging on 'Starting cluster components...'
+Starting local Kubernetes v1.10.0 cluster...
+Starting VM...
+Getting VM IP address...
+Moving files into cluster...
+Setting up certs...
+Connecting to cluster...
+Setting up kubeconfig...
+Starting cluster components...
+and the error log in minikube says
+
+failed to run Kubelet: unable to load bootstrap kubeconfig: stat /etc/kubernetes/bootstrap-kubelet.conf: no such file or director
+
+Solution:
+
+This is an issue with minikube 0.28, there is a ticket open regarding this issue.
+
+To walk around it, you can uninstall the current version of minikube and reinstall minikube 0.25.2
+
+Related Q&A:
+
+https://www.udemy.com/kubernetes-from-a-devops-kubernetes-guru/learn/v4/questions/4555676
+
+https://www.udemy.com/kubernetes-from-a-devops-kubernetes-guru/learn/v4/questions/4471680
+
+====================================================
+
+Exercicio:
+
+Configurar o deploy da plataforma de publicação "ghost" de maneira que ele mantenha os dados menos que seja restartado o container (ou minikube)
+
+*Para crédito extra e desafio, configurar o deploy para scale quando o uso de CPU estiver alto no deploy.
+
+* A imagem do Ghost no docker hub é o melhor lugar para você começar o deploy
+
+*A documentação do docker image tem ótimas dicas sobre persistencia de dados!
+
+
+
+Possível solução:
+
+*Definir um volume de 10GB - local.volume.yaml
+
+*Definir um deploy que utiliza a imagem docker do Ghost - ghost-deployment.yaml
+	-Com o PersistentVolumeClaim
+	-Montando o PersistentVolume no /var/lib/ghost/content
+*Configurar o pod auto-scaler para redimensionar quando a CPU chegar a 50%
+	kubectl autoscale deployment ghost --cpu-percent=50 --min=1 --max=5
+
+====================================================
+
+Alta disponibilidade
+
+Itens chave da arquitetura kubernetes
+
+*Master
+	-kube-apiserver
+	-kube-controller-manager
+	-kube-scheduler
+*etcd
+
+*Configurando um sistema confiável
+
+1 - Criando nodes confiáveis que, juntos, formarão uma implementação altamente dispoível do master nos passos seguintes
+
+2 - Configurando uma camada de storage de dados redundante, com o etcd clusterizado
+
+3 - Iniciando os servidores da API de load balance de maneira replicada
+
+4 - Configurando os daemons kube-sheduler e kube-controller-manager
+
+5 - vários nós do worker
+
+
+Nós confiáveis para os MASTERS
+
+*Máquinas independentes que rodaram o processo mestre
+
+*Deverão rodar o kubelet e o monit
+
+Servidores de API replicadas
+
+*Kube-api deverá rodar em todos os nós que serão o mestre
+
+*Kube-api deverá estar atrás de um load balance de rede, este irá variar de acordo com o ambiente utilizado.
+
+Componentes "Master elected"
+
+*Agora que os itens estão configurados nos nós, nós iremos colocar as peças do quebra cabeças no lugar, pois elas ainda não estão rodando!
+
+*Nós precisamos ter certeza que somente um ator trabalhar com os dados no determinado tempo
+
+*Cada gerenciador de scheduler e gerenciador de controler deverá ser iniciciado com a flag "--leader-elect" que irá utilizar o lease-lock API entre eles para garantir que somente uma instancia de cada estará rodando em um tempo delimitado.
+
+====================================================
+
+Masters
+
+*geralmente rodam 3 processos chave
+	-kube-apiserver
+	-kube-controller-manager
+	-kube-scheduler
+*Estes processos acessam e permanecem no etcd
+
+Será preciso uma conta na AWS!
+
+Configurando um cluster kubernetes na AWS
+
+*Amazon oferece um serviço gerenciador de kubernetes chamado elastic kubernets service (EKS)
+
+*Gerenciamento de redundancia do master/Alta disponibilidade
+
+*Instalação altamente automatizada
+
+*Iremos utilizar o "Kops", uma suite de software oferecida pelos mantenedores do kubernetes para dar mais trabalho manual para a configuração de nosso cluster
+
+Passos:
+
+1 - Baixar e instalar o "kops"
+2 - Baixar, configurar e instalar a suite de comandos da aws
+3 - Criar um bucket AWS S3 como um "state store"
+4 - Criar um cluster utilizando kops
+
+Criando o bucket:
+
+aws s3api create-bucket --bucket basit-k8s-demo-bucket --region us-west-2 --create-bucket-configuration LocationConstraint=us-west-2
+
+export KOBS_STATE_STORE=s3://basit-k8s-demo-bucket
+
+kops create cluster maranics-k8-demo1.k8.local --zones us-west-2a --yes
+
+<se der um erro a ver com o id_rsa.pub crie uma chave rsa com o ssh-keygen>
+
+kops validate cluster (se der algum erro é porque ainda não subiu! demora mesmo!)
+
+kubectl get nodes --show-labels
+
+<entrar na máquina master>
+
+dar um ps ax para verificar se os processos do docker e outras coisas para validar
+
+
+
+

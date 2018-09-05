@@ -1,0 +1,34 @@
+==================================================================================================
+Deploy
+==================================================================================================
+minikube version
+minikube start
+
+kubectl version
+
+kubectl cluster-info
+kubectl get nodes
+
+kubectl run kubernetes-bootcamp --image=gcr.io/google-samples/kubernetes-bootcamp:v1 --port 8080
+==================================================================================================
+Viewing app
+==================================================================================================
+
+kubectl proxy
+
+curl http://localhost:8001/version
+
+export POD_NAME=$(kubectl get pods -o go-template --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')
+echo Name of the Pod: $POD_NAME
+
+curl http://localhost:8001/api/v1/namespaces/default/pods/$POD_NAME/proxy/
+
+==================================================================================================
+Troubleshooting with kubectl
+==================================================================================================
+
+kubectl get - list resources
+kubectl describe - show detailed information about a resource
+kubectl logs - print the logs from a container in a pod
+kubectl exec - execute a command on a container in a pod
+

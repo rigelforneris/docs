@@ -1,0 +1,181 @@
+Google Cloud Plataform:
+
+Compute
+
+Storage
+
+Big Data
+
+Machine learning
+
+============================================
+
+O que é computação em nuvem?
+
+Self-service sob demanda: Nenhuma intervenção humana necessária para adquirir recursos
+
+Acesso á rede: Acessível de qualquer lugar
+
+Agrupamento de recursos: Provedor compartilha recursos com clientes
+
+Elasticidade rápida: Adquira mais recursos tão rápido quanto possível
+
+Medição de serviço: Pague somente o que consumir 
+
+============================================
+
+Como chegamos aqui? Para aonde vamos:
+
+Físico/Colocation: Configurado por usuário e mantido pelo mesmo.
+
+Virtualizado: Configurado pelo usuário, provido e mantido pelo provedor.
+
+Serverless: Totalmente automatizado.
+
+============================================
+
+*Toda companhia será uma companhia de dados!
+
+============================================
+
+Arquiteturas do GCP:
+
+Compute engine: IaaS
+Kubernetes engine: Hybrid
+App Engine: PaaS
+Cloud Functions: Serverless logic
+Managed services: Automated elastic resources
+
+
+============================================
+
+Rede google: 100,000s km de cabos de fibra ótica, 8 cabos sub-oceanicos
+
+============================================
+
+Regiões google:
+
+continente(multi região) --> região --> zona
+
+Europe --> europe-west2 --> europe-west2-a, europe-west2-b ou europe-west2-c.
+
+============================================
+
+Precificação "customer-friendly" pricing innovations
+
+Cobrança por Minuto: para máquinas virtuais e containers na nuvem, processamento de dados e outros serviços também.
+
+Descontos por uso contínuo: Automaticamente aplicado no uso das máquinas virtuais o desconto de 25% sob o ano.
+
+Tipos diferentes de instancias de VM: Pague somente os recursos que você precisará para sua aplicação.
+
+============================================
+
+APIS:
+
+Apis abertas: Compatíveis com serviços de open-source:
+
+-Cloud Bigtable
+-Cloud Dataproc
+
+Código aberto para um eco-sistema rico:
+
+-TensorFlow
+-Kubernetes
+-Forseti Security
+
+Tecnologias amigáveis ao multiprovedor:
+
+-Google Stackdriver
+-Kubernetes engine
+
+============================================
+
+Google Cloud Platform oferece uma variedade de serviços de:
+
+Computação: compute engine, kubernetes engine, app engine e cloud functions
+
+Storage: Bigtable, Cloud Storage, Cloud SQL, Cloud Spanner, Cloud Datastore
+
+Big data: Big Query, Pub/Sub, Dataflow, Dataproc, Datalab
+
+Machine Learning: Api linguagem Natural, API de visão, Machine learning, API de fala, API de tradução.
+
+============================================
+
+Segurança na infraestrutura técnica da google:
+
++++++++++
++Camada:+ 1.1)
++++++++++
+
+Segurança operacional
+
+++++++++++++++++++++++++++++++++
++Medidas notaveis de segurança:+ 1.2)
+++++++++++++++++++++++++++++++++
+
+Sistemas de detecção de intrução, tecnicas para reduzir risco de funcionários internos, uso de U2F por parte de empregados, práticas de desenvolvimento de software.
+
+2.1) Comunicação de internet
+
+2.2) Front end da google, desenvolvida contra Negações de Serviço.
+
+3.1) Serviços de storage
+
+3.2) Encriptação no rest
+
+4.1) Identidade do usuário
+
+4.2) Serviço de identidade central com suporte para U2F
+
+5.1) Deploy de serviço 
+
+5.2) Encriptação de comunicação entre serviços
+
+6.1) Infraestrutrura de Hardware
+
+6.2) Total procedencia e design de hardware, pilha de boot segura, premissas de segurança
+
+============================================
+
+Curso 2
+
+============================================
+
+Formas de interagir com o Google Cloud Plataform:
+
+Web user interface
+
+Cloud Shell e Cloud SDK
+
+Cloud Console para celular
+
+Api baseada em REST
+
+============================================
+
+Tipos de regras IAM
+
+Primitivas >> aplica tudo sob o GPC (arriscado utilizar em projetos com muitas pessoas envolvidas)
+
+Predefinidas >> aplica em Compute engine resources no projeto corrente, no diretório ou organização
+
+Customizadas
+
+============================================
+
+Um projeto pode ter:
+
+Dono de projeto
+Editor de projeto
+Visualizador de projeto
+Administrador de contas
+
+
+
+
+
+
+
+

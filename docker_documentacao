@@ -1,0 +1,427 @@
+docker images >> lista as imagens
+docker run busybox:1.24 echo "hello world"
+docker run busibox:1.24 ls /
+
+docker -i inicia container interativo
+docker -t inicia uma pseudo TTY que interage com stdin e stdout
+
+docker run -i -t busybox:1.24 >> dá um terminal dentro do container
+
+Imagens:
+* Imagens são templates em Read Only, usados para criar os containers
+*Imagens são criadas com o comando "docker build"
+*Imagens são constituidas de camadas de outras imagens
+*Imagens são guardadas no registro docker 
+
+Containers:
+*Se uma imagem é uma "classe", então um container é uma instância desta classe,
+um objeto em runtime.
+
+*Containers são leves, são encapsulamentos portateis de um ambiente que roda aplicações
+
+Registros e repositórios
+*Registro é aonde guardamos as imagens
+*Você pode "hostear" o seu próprio registro, ou utilizar o registro público, chamado DockerHib.
+*Dentro do registro, as imagens são guardadas em repositórios
+*Repositório Docker é uma coleção de diferentes imagens docker com o mesmo nome, que possuem diferentes tags, cada tag geralmente representa uma versão diferente de cada imagem.
+
+dockerhub.com
+
+Porque utilizar imagens oficiais do docker?
+
+*documentação limpa
+*Time dedicado em verificar o conteúdo da imagem
+*Updates de segurança feitas rapidamente
+
+docker -d > roda container em background
+
+docker run -d busybox:1.24 sleep 1000  >> vai rodar em background
+
+docker ps vai listar o container rodando em background
+
+docker ps -a > mostra todos os containers que rodamos anteriormente
+
+docker run --rm busybox:1.24 sleep 1  >> container rodou por 1 segundo e depois desligou
+
+docker run --name hello_world busybox:1.24 >> especifica o nome do container que vai rodar
+
+docker inspect: Mostra informação mais detalhada
+
+docker run -d busybox:1.24 sleep 100 >> roda em background, mostrando a id do container
+
+docker inspect <id do container> >>> mostra todas as informações deste container
+
+========= port mapping & Docker logs =================
+
+-p host_port : container_port 
+
+docker run -it -p 8888:8080 tomcat:8.0 >> se não existir ele vai baixar
+
+docker run -it -d -p 8888:8080 tomcat:8.0 >> roda o container em background
+
+
+
+docker logs <container id> >> mostra os logs do container
+
+======== image layers ===========
+
+docker history busybox:1.24 >> mostra as layers
+
+====== Construindo docker images ===========
+
+um "dockerfile" é um arquivo de texto que contém todas as instruções para a criação da imagem.
+
+Cada instrução irá criar uma nova image layer para a imagem.
+
+touch Dockerfile (não deverá ter nenhuma extenção)
+
+FROM debian:jessie >> a linha não é case sensitive, mas é bom seguir a convenção.
+RUN apt-get update 
+RUN apt-get install -y git  
+RUN apt-get install -y vim
+
+Criado o DockerFile
+
+docker buld -t jameslee/debian . >> faz o build
+
+* O comando docker build obtém o path para o contexto da build como um argumento.
+
+*Quando a build inicia, o cliente docker empacota os arquivos no contexto da build em um tarball e aí trasnfere o arquivo de tarbal para o daemon.
+
+*Por padrão, docker irá pesquisar pelo dockerfile no caminho de conexto da build.
+
+======= commitando alterações feitas em um container (IMPORTANTE!) =========
+
+Existem 2 formas de criar uma imagem:
+
+* Commitando alterações no container
+* Escrevendo um dockerfile
+
+1: Subir um container de uma imagem base
+2: Instalar o pacote git no container
+3: Commitar as alterações feitas no container
+
+docker run -it debian:jessie >> entra no container para iniciar as alterações
+
+docker commit container_id repository_name:tag >> commita os dados
+
+docker commit 8b4eedba0bf7 jameslee/debian:1.0 >> commita os dados, mostrando o ID da nova imagem
+
+para rodar: docker run -it jameslee/debian:1.00
+
+
+========== dockerfile =====================
+
+* Cada comando RUN deverá executar o comando no topo da camada de escrita, e aí commitando o container como uma nova imagem
+
+*A nova imagem é utilizada para o próximo passo no dockerfile, então cada instrução RUN, vai criar uma nova camada de imagem.
+
+* É recomendado encadear as instruções RUN no dockerfile para reduzir o número de camadas de imagem criados:
+
+FROM debian:jesse
+RUN apt-get update && apt-get install -y \
+ git \
+ vim
+
+docker build -t jamesless/debian .
+
+====== separar argumentos multi linha alfanumericamente ======
+
+*Isto vai ajudar a evitar duplicação de pacotes e mantere a lista muito mais fácil de atualizar.
+
+
+======== instruções CMD ======
+
+*Instruções CMD especificam qual comando você quer que rode quando o container for inicializado.
+
+*Se não for especificado a instrução CMD no dockerfile, o Docker usará o comando padrão definido na imagem base.
+
+*A instrução CMD não irá rodar no momendo da buld de imagem, ele roda somente quando um container é inicializado.
+
+*Você pode especificar o comando em cada formulário executável preferido ou em forma de shell.
+
+exemplo:
+
+FROM debian:jesse
+RUN apt-get update && apt-get install -y \
+ git \
+ vim
+CMD ["echo","hello world"]
+
+***reconstrua a imagem***
+
+rodando novamente a imagem, o comando será executado. >> e é possível sobrescrever o comando CMD da seguinte forma:
+
+docker run <id da imagem: echo "hello docker"
+
+
+===============Docker Cache=================
+
+*A cada vez que o docker executa uma instrução, ele cria uma nova camada de imagem (image layer)
+
+*Na próxima vez, se a instrução não muda, o docker vai simplesmente reutilizar a camada existente.
+
+
+===============+Cache agressivo================
+
+FROM ubuntu:14.04
+RUN apt-get update
+RUN apt-get install -y git
+
+FROM ubuntu:14.04
+RUN apt-get update
+RUN apt-get install -y curl
+
+Solução1:
+
+FROM ubuntu:14.04
+RUN apt-get update && apt-get install -y \
+	git\
+	curl
+
+Solução2: Especificar a opção --no-cache
+
+docker built -t jameslee/debian . --no-cache=true
+
+
+
+===================== Instrução Copy ====================
+
+A instrução copy copia novos arquivos ou diretórios do contexto da build e os adiciona para o file system do container.
+
+touch abc.txt
+
+<abra o arquivo dockerfile> 
+
+estava assim:
+
+FROM debian:jesse
+RUN apt-get update && apt-get install -y \
+ git \
+ vim
+CMD ["echo","hello world"]
+
+Ficará assim:
+
+FROM debian:jesse
+RUN apt-get update && apt-get install -y \
+ git \
+ vim
+COPY abc.txt /src/abc.txt
+
+reconstrua a imagem e rode o container, você perceberá que o arquivo estará lá dentro!
+
+
+================== instrução ADD ================================
+
+
+*A instrução ADD não pode apenas copiar arquivos mas também pode baixa-lo da internet e copiar para um container.
+
+* A instrução ADD também tem a habilidade de descompactar arquivos comprimidos.
+
+*A regra é: Utilize COPY por questões de transparencia, a menos que você tenha certeza absoluta que você precisa do ADD.
+
+===================== Enviar imagens para o docker hub ===================
+
+
+https://hub.docker.com
+
+
+docker_hub_id / repository_name
+
+
+docker images
+
+docker tag b29091b9447b jletutorial/debian
+
+========================= tag lastest ====================================
+
+*docker irá utilizar a tag "lastest" como default quando nenhuma tag é oferecida.
+
+*Muitos repositórios usam isto para nomear a imagem mais recente, contudo, esta não é a única convenção e isto não é obrigatório.
+
+*Imagens nomeadas como "lastest" não serão atualizadas automaticamente quando uma nova versão de imagem for enviada para o repositório
+
+
+docker tag b29091b9447b jleetutorial/debian:1.01  >> seta a versão
+
+
+docker login --username=<username>
+password:
+
+
+docker push jleetutorial/debian:1.01
+
+===================conteinizar uma aplicação hello world==================
+
+https://github.com/jleetutorial/dockerapp
+
+git clone -b v0.1 https://github.com/jleetutorial/dockerapp.git
+
+cd dockerapp
+
+cd app/ (tem um arquivo .py)
+
+*** Observar que não é para utilizar este método para iniciar a aplicação em produção, qualquer coisa, pesquisar por "flask deployment options" ***
+
+docker build -t dockerapp:0.1 . >> faz a build da image
+
+
+
+========= Implementar um serviço de lookup de chave-valor=================
+
+docker build -t dockerapp:0.2 .
+
+
+(verificar antes se há algum docker rodando para evitar conflito de porta)
+
+docker run -d -p 5000:5000 dockerapp:v0.2
+
+
+
+================ Usando o redis =====================================
+
+Redis é uma estrutura de armazenamento, utilizada como banco de dados, cache e message broker.
+
+Já vem com replicação e diferentes níveis de persistência no disco.
+
+É largamente utilizado em vários dos produtos críticos no meio, como o serviço de timeline do twitter, e o feed de noticias do facebook.
+
+=================Docker container links================================
+
+Transferencia segura de um container ao outro
+ __________                     ____________ 
+|dockerapp |                   |Container   | 
+|container | >>>>>>>>>>>>>>>>> |Redis       | 
+|__________|      Host         |____________|
+Recipiente			Fonte
+
+
+docker run -d --name redis redis:3.2.0 >>> baixa o redis
+
+docker ps
+
+docker build -t dockerapp:v0.3 .
+
+docker run -d -p 5000:5000 --link redis  dockerapp:v0.3 >> roda o container linkado para o redis
+
+entrando via docker exec -it <id do container> bash, indo em /etc/hosts dá pra ver a integração, pingando em redis dentro do servidor também
+
+indo em docker inspect <id do container> | grep IP dá pra ver o ip.
+
+Beneficios de utilizar a linkagem de containers do docker
+
+* O uso principal é quando construimos uma aplicação com uma arquitetura de microserviço, aí conseguimos rodar vários componentes independentes em diferentes containers.
+
+* O docker cria um túnel de segurança entre os containers que não são necessários de expor qualquer porta externamente para fora.
+
+
+=================== docker compose =========================
+
+Porque Docker Compose
+
+Linkando containers e configurando serviços começa a ficar impraticável quando o número de containers cresce...
+
+Procurar por docker compose no google!
+
+touch docker-compose.yml
+
+version: '3' << versão do docker compose
+services: 
+  dockerapp:
+    buld: .
+    ports:
+      -"5000:5000"
+    depends_on:
+      - redis
+    redis:
+      image: redis:3.2.0
+
+(parar todos os containers para evitar conflito de portas)
+
+docker ps
+
+docker stop <container ID>
+
+docker-compose up
+
+
+* Docker é uma ferramenta muito "Mão na roda" para criar e subir rapidamente ambientes docker
+
+*Docker compose utiliza arquivos yaml para guardar a configuração de todos os containers, ajudando no "fardo" de manter os scripts para a orquestração de docker.
+
+git stash && git checkout v0.4
+
+docker-compose up -d >> inicializa os containers em background
+
+docker-compose ps >> lista os containers
+
+docker-compose logs -f >>> mostra os logs
+
+docker-compose logs <nome do containers>
+
+docker-compose stop >> para o docker compose.
+
+docker-compose rm >> remove todos os containers
+
+====== editando a imagem: ===============
+antes:
+
+FROM python:3.5
+RUN pip install Flask==0.11.1 redis==2.10.5
+RUN useradd -ms /bin/bash admin
+USER admin
+COPY app /app
+WORKDIR /app
+CMD ["python", "app.py"] 
+
+depois:
+
+FROM python:3.5
+RUN pip install Flask==0.11.1 redis==2.10.5
+RUN useradd -ms /bin/bash admin
+USER james
+COPY app /app
+WORKDIR /app
+CMD ["python", "app.py"] 
+
+
+docker-compose up -d não reconstroi imagem se ela existir!
+
+docker-compose up -d não funciona depois de editar imagem!
+
+o que funciona:
+
+docker-compose build && docker-compose up -d
+
+sintaxe: 
+
+docker compose up ---> Inicia todos os containers
+
+docker compose ps ---> Checa o status dos containers gerenciados pelo docker compose.
+
+docker compose logs ---> Imprime logs coloridos sobre os containers gerenciados pelo docker compose.
+
+docker compose logs -f --> semelhante ao tail -f
+
+docker compose logs <container> mostra os logs do container específico.
+
+docker compose stop ---> para todos os containers sem remove-los
+
+docker compose rm ---> remove todos os containers.
+
+docker compose build ---> reconstroi todas as imagens.
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,18 @@
+Criar zona dns:
+
+gcloud dns --project=xenon-coast-215320 managed-zones create meusite --description= --dns-name=forneris.com.br.
+
+Configurações de DNS:
+
+gcloud dns --project=xenon-coast-215320 record-sets transaction start --zone=meusite
+
+gcloud dns --project=xenon-coast-215320 record-sets transaction add 35.231.121.65 --name=forneris.com.br. --ttl=300 --type=A --zone=meusite
+
+gcloud dns --project=xenon-coast-215320 record-sets transaction execute --zone=meusite
+
+
+
+ns-cloud-b1.googledomains.com.
+ns-cloud-b2.googledomains.com.
+ns-cloud-b3.googledomains.com.
+ns-cloud-b4.googledomains.com.

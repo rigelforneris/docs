@@ -1,0 +1,7 @@
+// CREATE INSTANCE WITH 4 vCPUs and 5 GB MEMORY
+gcloud compute instances create my-vm --custom-cpu 4 --custom-memory 5
+
+// ENABLE PREEMPTIBLE OPTION
+gcloud compute instances create my-vm --zone us-central1-b --preemptible
+
+
